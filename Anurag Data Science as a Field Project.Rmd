@@ -1,0 +1,92 @@
+---
+title: "NYPD Shooting Incident Data Report"
+author: "Anurag Balaji"
+output: pdf_document
+date: "2025-02-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+```
+
+## NYPD Data-Load and Tidy
+
+Below is a summary of the NYPD Shooting Data set. We begin by loading in the dataset and selecting only the relevant columns for our analysis. We then summarize the dataset 
+
+```{r cars}
+nypd=read_csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD",show_col_types = FALSE)
+nypd = nypd %>% select(INCIDENT_KEY, 
+                   OCCUR_DATE,
+                   OCCUR_TIME,
+                   BORO, 
+                   STATISTICAL_MURDER_FLAG,
+                   PERP_AGE_GROUP,
+                   PERP_SEX,
+                   PERP_RACE,
+                   VIC_AGE_GROUP,
+                   VIC_SEX,
+                   VIC_RACE)
+summary(nypd)
+```
+
+## Analysis and Research Questions
+
+1) What areas of New York City has the most number of incidents.
+
+```{r , echo=FALSE}
+g <- ggplot(nypd, aes(x = BORO)) +
+  geom_bar() +
+  labs(title = "Boroughs of New York City",
+       x = "Boroughs of New York City",
+       y = "Count of Incidents") 
+g
+```
+From the above graph, we can clearly see that Brooklyn is the neighbourhood with the most number of incidents in New York City with over 10000 incidents. Staten Island is the neighbourhood with the least number of incidents with less than 1000 incidents being reported. Individuals in Brooklyn should be more cautious and vigilant in New York City. 
+
+
+2) Which months saw the most incidents/ murders
+
+```{r , echo=FALSE}
+
+# Convert OCCUR_DATE to Date format
+nypd$OCCUR_Month <- mdy(nypd$OCCUR_DATE)
+
+# Extract month names
+nypd$OCCUR_Month <- months(nypd$OCCUR_Month)
+
+# Convert to factor with correct chronological levels
+nypd$OCCUR_Month <- factor(nypd$OCCUR_Month, levels = month.name)
+
+df_3 = nypd %>%
+  group_by(OCCUR_Month) %>%
+  count()
+
+g <- ggplot(df_3, aes(x = OCCUR_Month, y = n)) +
+  geom_col() +
+  labs(title = "Which day should people in New York be cautious of incidents?",
+       x = "Incident Occurence Month",
+       y = "Count of Incidents") +
+  theme_minimal()
+g
+
+```
+
+From the above graph, we can see that July and August are the months with the most number of incidents in the year and February has the least number of incidents. We are also able to see overall that summer months and warmer months tend to have more incidents that the winter months.
+This may be mainly due to the fact that people tend to spend a lot more time outdoors during the warmer months making them potentially more vulnerable to shooting incidents in New York City.
+
+3) Building a logistic regression model to predict whether an incident is a murder or not
+
+```{r , echo=FALSE}
+glm.fit <- glm(STATISTICAL_MURDER_FLAG ~ PERP_RACE + PERP_SEX +BORO, data = nypd, family = binomial)
+summary(glm.fit)
+```
+
+Finally, we can build a logistic regression model to help predict whether an incident is going to be a murder or not. I will use the perpetrator sex, race and boroughs to determine if an incident is a murder or not. From the above model, we can see that an incident ocurring in Brooklyn changes the log odds of murder by -0.13.
+
+
+4) Potential Sources of Bias
+
+Potential sources of bias in analyzing NYPD shooting data include reporting bias, where certain incidents may be underreported or misclassified; selection bias, if the dataset does not capture all relevant cases; and data collection bias, influenced by how and why data is recorded. Demographic bias may arise if certain groups are over- or underrepresented due to systemic factors. Additionally, analytical bias, such as choosing specific metrics or framing results in a particular way, can impact interpretations. For example, one might feel that women might be more vulnerable to incidents or certain neighbourhoods like the Bronx might have the most incidents due to personal experiences or assumptions. Acknowledging these biases and testing them first is crucial to ensuring a fair, transparent, and data-driven analysis.
+
